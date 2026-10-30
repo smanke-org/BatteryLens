@@ -52,7 +52,8 @@ gh release create "${TAG}" ".build/dist/BatteryLens-${VERSION}.dmg" ".build/dist
 echo "==> Verifying the permanent download link"
 URL="https://github.com/smanke-org/BatteryLens/releases/latest/download/BatteryLens.dmg"
 for attempt in 1 2 3 4 5 6; do
-  CODE=$(curl -sL -o /dev/null -w "%{http_code}" "${URL}")
+  # A dropped connection (curl 56) must not end the script under set -e.
+  CODE=$(curl -sL -o /dev/null -w "%{http_code}" "${URL}" || true)
   if [ "${CODE}" = "200" ]; then
     echo "    ${URL} -> 200"
     echo "Released ${TAG}."
