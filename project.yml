@@ -19,7 +19,7 @@ settings:
     SWIFT_VERSION: "5.0"
     MACOSX_DEPLOYMENT_TARGET: "26.0"
     MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "16"
+    CURRENT_PROJECT_VERSION: "18"
     ENABLE_HARDENED_RUNTIME: YES
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "Developer ID Application"
@@ -41,6 +41,10 @@ targets:
       - path: App
       - path: Resources/AppIcon.icns
         buildPhase: resources
+      # The widget's views, drawn by the app's Debug-only pictures of the widget.
+      - path: Widget/RingsView.swift
+      - path: Widget/BarsView.swift
+      - path: Widget/WidgetShared.swift
     dependencies:
       - package: BatteryLensKit
         product: BatteryLensKit
@@ -68,6 +72,7 @@ targets:
         INFOPLIST_FILE: Resources/Widget-Info.plist
         CODE_SIGN_ENTITLEMENTS: Resources/BatteryLensWidget.entitlements
         SKIP_INSTALL: YES
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) WIDGET_EXTENSION
 schemes:
   BatteryLens:
     build:

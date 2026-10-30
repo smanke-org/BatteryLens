@@ -30,8 +30,7 @@ struct SettingsView: View {
             footer(tabState.tab)
         }
         .padding(12)
-        .frame(width: Self.width)
-        .frame(maxHeight: .infinity)
+        .frame(minWidth: Self.width, maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// One tab on its own, for measuring its natural height. A one-tab TabView has the
@@ -59,7 +58,13 @@ struct SettingsView: View {
         switch tab {
         // The device list scrolls on its own, so its tab has a set height.
         case .general: scrolling(measuring) { GeneralTab() }
-        case .devices: DevicesTab(model: model).frame(height: 420)
+        case .devices:
+            // Its natural height when measured; in the window it fills whatever size you give it.
+            if measuring {
+                DevicesTab(model: model).frame(height: DevicesTab.height)
+            } else {
+                DevicesTab(model: model).frame(minHeight: DevicesTab.height, maxHeight: .infinity)
+            }
         case .alerts: scrolling(measuring) { AlertsTab(model: model) }
         case .menuBar: scrolling(measuring) { MenuBarTab(model: model) }
         case .permissions: scrolling(measuring) { PermissionsTab(model: model) }
@@ -89,6 +94,9 @@ struct SettingsView: View {
 // MARK: - Devices
 
 struct DevicesTab: View {
+    /// Set; the device list and the detail scroll inside it.
+    static var height: CGFloat = 420
+
     @ObservedObject var model: AppModel
 
     var body: some View {
@@ -137,7 +145,7 @@ struct DeviceListRow: View {
                     .foregroundStyle(.secondary)
                     .help(settings.isReporting ? "Hidden" : "Not reported")
             }
-            Text(device.lowest.map { "\($0)%" } ?? "—")
+            Text(device.lowest.map { (device.isEstimated ? "~" : "") + "\($0)%" } ?? "—")
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
         }

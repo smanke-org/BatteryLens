@@ -162,6 +162,7 @@ struct Provider: AppIntentTimelineProvider {
 // MARK: - Views
 
 struct DevicesView: View {
+    @Environment(\.widgetFamily) private var family
     let entry: DevicesEntry
 
     var body: some View {
@@ -171,8 +172,8 @@ struct DevicesView: View {
             message(entry.configuration.devices?.isEmpty == false ? "The chosen devices aren't available" : "No battery devices connected")
         } else {
             switch entry.configuration.style {
-            case .rings: RingsView(entry: entry)
-            case .bars: BarsView(entry: entry)
+            case .rings: RingsView(family: family, devices: entry.devices, snapshot: entry.snapshot)
+            case .bars: BarsView(family: family, devices: entry.devices, snapshot: entry.snapshot)
             }
         }
     }
@@ -184,29 +185,4 @@ struct DevicesView: View {
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-}
-
-/// "Updated 2 min ago", shown where there's room.
-struct UpdatedLine: View {
-    let snapshot: Snapshot?
-
-    var body: some View {
-        if let snapshot {
-            Text("Updated \(snapshot.written, style: .relative) ago")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .lineLimit(1)
-        }
-    }
-}
-
-/// How a level is drawn: red at or below the device's low level, green otherwise.
-func levelColor(_ percent: Int?, threshold: Int) -> Color {
-    guard let percent else { return .secondary }
-    return percent <= threshold ? .red : .green
-}
-
-extension DeviceBattery {
-    /// True when the level shown is the app's estimate rather than a reading.
-    var isEstimated: Bool { levels.contains { $0.source == .estimate } }
 }

@@ -1,11 +1,11 @@
-import AppIntents
 import BatteryLensShared
 import SwiftUI
 import WidgetKit
 
 struct BarsView: View {
-    @Environment(\.widgetFamily) private var family
-    let entry: DevicesEntry
+    let family: WidgetFamily
+    let devices: [DeviceBattery]
+    let snapshot: Snapshot?
 
     private var rowsPerColumn: Int {
         switch family {
@@ -18,7 +18,7 @@ struct BarsView: View {
     private var columns: Int { family == .systemExtraLarge ? 2 : 1 }
 
     var body: some View {
-        let devices = Array(entry.devices.prefix(rowsPerColumn * columns))
+        let devices = Array(devices.prefix(rowsPerColumn * columns))
         let compact = family == .systemSmall
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 24) {
@@ -31,7 +31,7 @@ struct BarsView: View {
                 }
             }
             Spacer(minLength: 0)
-            if !compact { UpdatedLine(snapshot: entry.snapshot) }
+            if !compact { UpdatedLine(snapshot: snapshot) }
         }
     }
 }
@@ -65,11 +65,16 @@ struct BarRow: View {
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                 if device.isEstimated && !compact {
+                    #if WIDGET_EXTENSION
                     Button(intent: MarkChargedIntent(deviceID: device.id)) {
                         Image(systemName: "bolt.badge.checkmark")
                     }
                     .buttonStyle(.plain)
                     .help("Mark as charged")
+                    #else
+                    // The app draws these views only for pictures of the widget.
+                    Image(systemName: "bolt.badge.checkmark")
+                    #endif
                 }
             }
             .font(compact ? .caption : .callout)

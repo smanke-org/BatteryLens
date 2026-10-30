@@ -22,6 +22,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppSettings.register()
+        #if DEBUG
+        // Pictures for the website from made-up devices; starts nothing and saves nothing.
+        if let folder = ProcessInfo.processInfo.environment["BATTERYLENS_DEBUG_SHOTS"] {
+            DebugShots.run(folder: folder)
+            return
+        }
+        #endif
         SharedContainer.trimLog()
         SharedContainer.log("app: launched \(AppInfo.versionString)"
                             + (SharedContainer.url == nil ? " — App Group container unavailable" : ""))

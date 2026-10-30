@@ -36,8 +36,9 @@ struct RingItem: Identifiable {
 }
 
 struct RingsView: View {
-    @Environment(\.widgetFamily) private var family
-    let entry: DevicesEntry
+    let family: WidgetFamily
+    let devices: [DeviceBattery]
+    let snapshot: Snapshot?
 
     private var layout: (columns: Int, rows: Int, diameter: CGFloat, names: Bool) {
         switch family {
@@ -50,7 +51,7 @@ struct RingsView: View {
 
     var body: some View {
         let layout = layout
-        let items = Array(RingItem.items(for: entry.devices).prefix(layout.columns * layout.rows))
+        let items = Array(RingItem.items(for: devices).prefix(layout.columns * layout.rows))
         VStack(spacing: 0) {
             Grid(horizontalSpacing: 8, verticalSpacing: family == .systemSmall ? 8 : 12) {
                 ForEach(0..<rowCount(items.count, layout.columns), id: \.self) { row in
@@ -68,7 +69,7 @@ struct RingsView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             if family == .systemLarge || family == .systemExtraLarge {
-                UpdatedLine(snapshot: entry.snapshot)
+                UpdatedLine(snapshot: snapshot)
             }
         }
     }

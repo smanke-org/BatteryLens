@@ -9,6 +9,12 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private let tabState = SettingsTabState()
     private var window: NSWindow?
     private var tabObserver: AnyCancellable?
+    private var fitting = false
+    /// The Devices tab's size when you've made the window bigger, kept across tabs and launches.
+    private var devicesSize: NSSize? {
+        get { UserDefaults.standard.string(forKey: "settingsDevicesSize").map(NSSizeFromString) }
+        set { UserDefaults.standard.set(newValue.map(NSStringFromSize), forKey: "settingsDevicesSize") }
+    }
 
     init(model: AppModel) {
         self.model = model
@@ -43,20 +49,34 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         return window
     }
 
-    /// Resizes the window to the tab's natural height, no taller than the screen,
-    /// keeping its top edge in place.
+    /// Resizes the window for the tab, keeping its top edge in place: the other tabs to
+    /// their natural height, the Devices tab to the size you last gave it (it fills the
+    /// window, so the list and the chart get the room). Never bigger than the screen.
     private func fit(_ tab: SettingsTab, animate: Bool) {
         guard let window else { return }
-        let width = SettingsView.width
+        fitting = true
+        defer { fitting = false }
         let natural = ceil(NSHostingView(rootView: SettingsView(model: model, tabState: tabState).measuring(tab)).fittingSize.height)
         let screen = window.screen ?? NSScreen.main
-        let height = min(natural, (screen?.visibleFrame.height ?? 800) - 80)
-        window.contentMinSize = NSSize(width: width, height: min(240, height))
-        window.contentMaxSize = NSSize(width: width, height: height)
-        var frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: NSSize(width: width, height: height)))
+        let room = screen?.visibleFrame.size ?? NSSize(width: 1400, height: 880)
+        let maxHeight = room.height - 80
+        var size = NSSize(width: SettingsView.width, height: min(natural, maxHeight))
+        if tab == .devices, let saved = devicesSize {
+            size = NSSize(width: max(size.width, saved.width), height: max(size.height, saved.height))
+        }
+        size = NSSize(width: min(size.width, room.width - 40), height: min(size.height, maxHeight))
+        window.contentMinSize = NSSize(width: SettingsView.width, height: min(240, size.height))
+        // Only the Devices tab has anything to gain from being taller than its contents.
+        window.contentMaxSize = NSSize(width: room.width, height: tab == .devices ? maxHeight : min(natural, maxHeight))
+        var frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: size))
         frame.origin = NSPoint(x: window.frame.minX, y: window.frame.maxY - frame.height)
         if let visible = screen?.visibleFrame, frame.minY < visible.minY { frame.origin.y = visible.minY }
         window.setFrame(frame, display: true, animate: animate && window.isVisible)
+    }
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        guard !fitting, tabState.tab == .devices, let window else { return }
+        devicesSize = window.contentRect(forFrameRect: window.frame).size
     }
 
     func windowWillClose(_ notification: Notification) {
