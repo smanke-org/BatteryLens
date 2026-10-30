@@ -9,6 +9,8 @@ Apple's Batteries widget only knows about Apple devices and a handful of others.
 reads every source macOS offers, so devices that otherwise show nothing get a level, a
 history and a warning before they run flat.
 
+<p align="center"><img src="docs/images/batterylens-widget-rings.webp" width="364" alt="The BatteryLens widget as rings"> <img src="docs/images/batterylens-widget-bars.webp" width="260" alt="The BatteryLens widget as bars"></p>
+
 ## Download
 
 ### [⬇ Download BatteryLens.dmg](https://github.com/smanke-org/BatteryLens/releases/latest/download/BatteryLens.dmg)
