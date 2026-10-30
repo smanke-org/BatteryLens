@@ -1,0 +1,5 @@
+.build/
+BatteryLens.xcodeproj/
+.DS_Store
+.swiftpm/
+*.zip
