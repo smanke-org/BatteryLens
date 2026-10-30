@@ -161,6 +161,7 @@ enum Help {
                 ("batterylens://settings", "Opens Settings"),
                 ("batterylens://refresh", "Reads every source again"),
                 ("batterylens://help", "Opens this Help"),
+                ("batterylens://check-updates", "Looks for a new version now"),
             ]),
             .tip("In Terminal: open batterylens://refresh"),
         ]),

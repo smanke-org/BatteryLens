@@ -159,6 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             switch url.host {
             case "refresh": hub.refresh()
             case "help": showHelp()
+            case "check-updates": UpdateController.checkForUpdates()
             default: openSettings()
             }
         }
