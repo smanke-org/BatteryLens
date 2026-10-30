@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Appearance, where BatteryLens appears, login, iCloud sync and updates.
 struct GeneralTab: View {
+    @ObservedObject var model: AppModel
     @State private var presence = PresenceSettings.shared
     @State private var hub = MenuHub.shared
     @State private var login = LaunchAtLogin.shared
@@ -51,6 +52,8 @@ struct GeneralTab: View {
                 if let error = login.lastError {
                     Text(error).font(.callout).foregroundStyle(.red)
                 }
+                Toggle("Ask before quitting", isOn: $model.confirmQuit)
+                    .help("Quitting BatteryLens asks first, so a stray ⌘Q doesn't stop the widget and alerts.")
             }
 
             Divider()
@@ -73,7 +76,7 @@ struct GeneralTab: View {
                         Button("Sync Now") { sync.syncNow() }
                     }
                 }
-                note("Appearance, alerts, the menu bar percentage, the update choice and where BatteryLens appears follow you to every Mac signed in to the same iCloud account with sync on. Device names and settings, and Open at login, stay on each Mac.")
+                note("Appearance, alerts, the menu bar percentage, the update choice, asking before quitting and where BatteryLens appears follow you to every Mac signed in to the same iCloud account with sync on. Device names and settings, and Open at login, stay on each Mac.")
             }
 
             Divider()

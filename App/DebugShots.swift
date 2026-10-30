@@ -39,7 +39,7 @@ enum DebugShots {
                 }
                 settings(model: model, out: out)
                 try? FileManager.default.removeItem(at: historyURL)
-                NSApp.terminate(nil)
+                QuitConfirmation.quitNow()
             }
         }
     }

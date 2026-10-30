@@ -9,7 +9,7 @@ enum SettingsTab: Hashable, CaseIterable {
 }
 
 final class SettingsTabState: ObservableObject {
-    @Published var tab: SettingsTab = .devices
+    @Published var tab: SettingsTab = .general
 }
 
 struct SettingsView: View {
@@ -57,7 +57,7 @@ struct SettingsView: View {
     private func content(_ tab: SettingsTab, measuring: Bool = false) -> some View {
         switch tab {
         // The device list scrolls on its own, so its tab has a set height.
-        case .general: scrolling(measuring) { GeneralTab() }
+        case .general: scrolling(measuring) { GeneralTab(model: model) }
         case .devices:
             // Its natural height when measured; in the window it fills whatever size you give it.
             if measuring {

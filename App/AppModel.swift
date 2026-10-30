@@ -18,6 +18,7 @@ enum AppSettings {
         static let menuBarShowsPercent = "menuBarShowsPercent"
         static let onboardingDone = "onboardingDone"
         static let alertsFired = "alertsFired"
+        static let confirmQuit = "confirmQuit"
     }
 
     static func register() {
@@ -27,6 +28,7 @@ enum AppSettings {
             Key.defaultLowThreshold: DeviceBattery.defaultLowThreshold,
             Key.menuBarDevice: "",
             Key.menuBarShowsPercent: true,
+            Key.confirmQuit: true,
             // Unlike the other apps' icons, this one shows a level, which a submenu in
             // ToolHUD's menu can't, so it stays in the menu bar unless asked.
             MenuHub.foldKey: false,
@@ -150,6 +152,14 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Quitting asks first, so a stray ⌘Q doesn't stop the widget and alerts.
+    @Published var confirmQuit = AppSettings.defaults.bool(forKey: AppSettings.Key.confirmQuit) {
+        didSet {
+            AppSettings.defaults.set(confirmQuit, forKey: AppSettings.Key.confirmQuit)
+            if confirmQuit != oldValue { syncChanged() }
+        }
+    }
+
     var onMenuBarChange: (() -> Void)?
     private var permissionTimer: Timer?
     private var reloadingSettings = false
@@ -171,6 +181,7 @@ final class AppModel: ObservableObject {
         if defaultLowThreshold != threshold { defaultLowThreshold = threshold }
         let percent = defaults.bool(forKey: AppSettings.Key.menuBarShowsPercent)
         if menuBarShowsPercent != percent { menuBarShowsPercent = percent }
+        if confirmQuit != defaults.bool(forKey: AppSettings.Key.confirmQuit) { confirmQuit.toggle() }
     }
 
     init(hub: BatteryHub) {

@@ -61,6 +61,7 @@ enum Help {
             ]),
             .tip("A device that disconnects stays in the list, dimmed, with its last-known level and how long ago that was."),
             .tip("While ToolHUD is running, BatteryLens's menu moves into ToolHUD's menu bar menu as a submenu, and the icon here steps aside until ToolHUD quits. To keep the icon, turn off \"Put in ToolHUD's menu while ToolHUD is running\" in Settings › General."),
+            .tip("Quitting asks first, since the widget, menu bar levels and alerts stop updating while BatteryLens is closed. Turn off \"Ask before quitting\" in Settings › General, or tick \"Don't ask again\" when it asks."),
         ]),
 
         HelpTopic(id: "widget", title: "The Widget", symbol: "square.grid.2x2", blocks: [
@@ -145,7 +146,7 @@ enum Help {
         ]),
 
         HelpTopic(id: "sync", title: "Sync and Updates", symbol: "icloud", blocks: [
-            .text("Turn on Sync settings with your other Macs in Settings › General to keep the appearance, alerts, menu bar choices, update choice and where BatteryLens appears the same on every Mac signed in to your iCloud account. Device names and per-device settings, and Open at login, stay separate on each Mac."),
+            .text("Turn on Sync settings with your other Macs in Settings › General to keep the appearance, alerts, menu bar choices, update choice, asking before quitting and where BatteryLens appears the same on every Mac signed in to your iCloud account. Device names and per-device settings, and Open at login, stay separate on each Mac."),
             .heading("Updates"),
             .keys([
                 ("Install automatically", "A new version installs itself when no app is presenting or keeping the screen awake and your Mac hasn't been used for 2 minutes"),

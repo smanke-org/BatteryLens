@@ -9,7 +9,7 @@ final class Preferences {
     /// The settings that follow you between Macs. The menu bar's chosen device and
     /// everything per device (names, thresholds, reporting) stay on each Mac.
     static let keys = [AppSettings.Key.lowAlerts, AppSettings.Key.fullAlerts,
-                       AppSettings.Key.defaultLowThreshold, AppSettings.Key.menuBarShowsPercent]
+                       AppSettings.Key.defaultLowThreshold, AppSettings.Key.menuBarShowsPercent, AppSettings.Key.confirmQuit]
 
     /// Called after another Mac's settings were written into UserDefaults.
     var onReload: (() -> Void)?
