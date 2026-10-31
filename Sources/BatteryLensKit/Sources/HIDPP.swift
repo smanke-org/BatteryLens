@@ -13,9 +13,12 @@ enum HIDPP {
     static let shortReportID: UInt8 = 0x10
     static let longReportID: UInt8 = 0x11
     static let longReportLength = 20
-    /// Tags our requests. Logi Options+ and M3 Tracker use their own, so replies to their
-    /// requests (which every opener of the device also receives) are ignored.
-    static let softwareID: UInt8 = 0x0C
+    /// Tag our requests, taken in turn so a late reply to an earlier request isn't taken
+    /// for the answer to the current one (a device that has just woken answers late, and
+    /// an answer to the wrong feature lookup once read a mouse at 85% as 1%). Logi
+    /// Options+ and M3 Tracker (0x0B) use their own, so replies to their requests (which
+    /// every opener of the device also receives) are ignored.
+    static let softwareIDs: ClosedRange<UInt8> = 0x0C...0x0F
     static let directDeviceIndex: UInt8 = 0xFF
 
     enum Feature: UInt16, CaseIterable {
@@ -38,7 +41,8 @@ enum HIDPP {
         }
     }
 
-    static func request(deviceIndex: UInt8, featureIndex: UInt8, function: UInt8, params: [UInt8] = []) -> [UInt8] {
+    static func request(deviceIndex: UInt8, featureIndex: UInt8, function: UInt8, softwareID: UInt8,
+                        params: [UInt8] = []) -> [UInt8] {
         var report: [UInt8] = [longReportID, deviceIndex, featureIndex, (function << 4) | softwareID]
         report += params.prefix(longReportLength - report.count)
         report += Array(repeating: 0, count: longReportLength - report.count)
@@ -47,11 +51,11 @@ enum HIDPP {
 
     enum Message: Equatable {
         /// A reply to one of our requests.
-        case response(deviceIndex: UInt8, featureIndex: UInt8, function: UInt8, params: [UInt8])
+        case response(deviceIndex: UInt8, featureIndex: UInt8, function: UInt8, softwareID: UInt8, params: [UInt8])
         /// Something the device sent on its own, such as a battery change.
         case event(deviceIndex: UInt8, featureIndex: UInt8, function: UInt8, params: [UInt8])
         /// Our request failed: an unknown feature, or a device that's asleep.
-        case error(deviceIndex: UInt8, featureIndex: UInt8, function: UInt8)
+        case error(deviceIndex: UInt8, featureIndex: UInt8, function: UInt8, softwareID: UInt8)
         /// A receiver reporting that a paired device connected or disconnected.
         case receiverConnection(deviceIndex: UInt8)
     }
@@ -64,8 +68,9 @@ enum HIDPP {
         case 0xFF, 0x8F:
             // HID++ 2.0 and 1.0 error replies: the failed request's feature index and
             // function|software ID follow.
-            guard report[4] & 0x0F == softwareID else { return nil }
-            return .error(deviceIndex: deviceIndex, featureIndex: report[3], function: report[4] >> 4)
+            guard softwareIDs.contains(report[4] & 0x0F) else { return nil }
+            return .error(deviceIndex: deviceIndex, featureIndex: report[3], function: report[4] >> 4,
+                          softwareID: report[4] & 0x0F)
         case 0x41 where report[0] == shortReportID:
             return .receiverConnection(deviceIndex: deviceIndex)
         default:
@@ -73,8 +78,9 @@ enum HIDPP {
             params += Array(repeating: 0, count: max(0, 16 - params.count))
             let software = report[3] & 0x0F
             let function = report[3] >> 4
-            if software == softwareID {
-                return .response(deviceIndex: deviceIndex, featureIndex: report[2], function: function, params: params)
+            if softwareIDs.contains(software) {
+                return .response(deviceIndex: deviceIndex, featureIndex: report[2], function: function,
+                                 softwareID: software, params: params)
             }
             if software == 0 {
                 return .event(deviceIndex: deviceIndex, featureIndex: report[2], function: function, params: params)

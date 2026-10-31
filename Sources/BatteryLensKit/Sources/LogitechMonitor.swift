@@ -1,5 +1,5 @@
+import AppKit
 import BatteryLensShared
-import Foundation
 import IOKit.hid
 
 /// Logitech devices over HID++: Bluetooth devices directly, and up to six devices behind
@@ -16,7 +16,9 @@ public final class LogitechMonitor: BatterySource {
     private var links: [UInt64: LogitechLink] = [:]
     /// Keyed by link and device index.
     private var readings: [String: BatteryReading] = [:]
-    private var timer: Timer?
+    private var identifyTimer: Timer?
+    private var batteryTimer: Timer?
+    private var wakeObserver: NSObjectProtocol?
 
     public init() {}
 
@@ -38,15 +40,34 @@ public final class LogitechMonitor: BatterySource {
         isOpen = result == kIOReturnSuccess
         status = isOpen ? "running" : "can't open devices (\(hex(result))); needs Input Monitoring"
         self.manager = manager
-        timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in self?.refresh() }
+        // Each question costs the device a little battery, so batteries are read hourly,
+        // after the Mac wakes, and on Refresh; announcements fill in between, from devices
+        // that send them (an MX Master 4 sends none when plugged in, so charging can show
+        // up to an hour late). Slots that haven't answered yet are retried more often,
+        // which costs a device nothing because none is listening.
+        identifyTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            self?.openIfNeeded()
+            self?.links.values.forEach { $0.identifyMissing() }
+        }
+        batteryTimer = Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { [weak self] _ in
+            self?.links.values.forEach { $0.readBatteries() }
+        }
+        // Changes while the Mac slept were never heard; give devices time to reconnect.
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 15) { self?.refresh() }
+        }
     }
 
     public func refresh() {
-        if !isOpen, let manager {
-            isOpen = IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone)) == kIOReturnSuccess
-            if isOpen { status = "running" }
-        }
-        links.values.forEach { $0.poll() }
+        openIfNeeded()
+        links.values.forEach { $0.identifyMissing(); $0.readBatteries() }
+    }
+
+    private func openIfNeeded() {
+        guard !isOpen, let manager else { return }
+        isOpen = IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone)) == kIOReturnSuccess
+        if isOpen { status = "running" }
     }
 
     private func added(_ device: IOHIDDevice) {
@@ -116,10 +137,13 @@ final class LogitechLink {
         let function: UInt8
         let params: [UInt8]
         let reply: ([UInt8]?) -> Void
+        /// Set when it's sent.
+        var softwareID: UInt8 = 0
     }
     private var queue: [Pending] = []
     private var inFlight: Pending?
     private var generation = 0
+    private var lastSoftwareID = HIDPP.softwareIDs.upperBound
 
     init(device: IOHIDDevice, product: String, isReceiver: Bool, keys: Set<String>) {
         self.device = device
@@ -151,11 +175,14 @@ final class LogitechLink {
 
     private var slots: [UInt8] { isReceiver ? Array(1...6) : [HIDPP.directDeviceIndex] }
 
-    /// Re-reads batteries, and tries again to identify anything that hasn't answered.
-    func poll() {
+    /// Tries again to identify anything that hasn't answered.
+    func identifyMissing() {
         for slot in slots where devices[slot] == nil && !noBattery.contains(slot) {
             identify(deviceIndex: slot)
         }
+    }
+
+    func readBatteries() {
         devices.values.forEach(readBattery)
     }
 
@@ -230,6 +257,9 @@ final class LogitechLink {
         }
 
         func finish() {
+            let features = device.featureIndex.sorted { $0.key.rawValue < $1.key.rawValue }
+                .map { String(format: "%04X@%d", $0.key.rawValue, $0.value) }.joined(separator: " ")
+            SharedContainer.logger.info("logitech: \(device.name, privacy: .public) has features \(features, privacy: .public)")
             identifying.remove(deviceIndex)
             failures[deviceIndex] = nil
             devices[deviceIndex] = device
@@ -279,10 +309,12 @@ final class LogitechLink {
 
     private func sendNextIfIdle() {
         guard inFlight == nil, !queue.isEmpty else { return }
-        let request = queue.removeFirst()
+        var request = queue.removeFirst()
+        lastSoftwareID = lastSoftwareID == HIDPP.softwareIDs.upperBound ? HIDPP.softwareIDs.lowerBound : lastSoftwareID + 1
+        request.softwareID = lastSoftwareID
         inFlight = request
         let report = HIDPP.request(deviceIndex: request.deviceIndex, featureIndex: request.featureIndex,
-                                   function: request.function, params: request.params)
+                                   function: request.function, softwareID: request.softwareID, params: request.params)
         let result = IOHIDDeviceSetReport(device, kIOHIDReportTypeOutput, CFIndex(HIDPP.longReportID),
                                           report, report.count)
         guard result == kIOReturnSuccess else { return complete(with: nil) }
@@ -304,18 +336,22 @@ final class LogitechLink {
 
     private func received(_ report: [UInt8]) {
         switch HIDPP.parse(report) {
-        case let .response(deviceIndex, featureIndex, function, params)?:
-            guard let request = inFlight, request.deviceIndex == deviceIndex,
-                  request.featureIndex == featureIndex, request.function == function else { return }
+        case let .response(deviceIndex, featureIndex, function, softwareID, params)?:
+            guard let request = inFlight, request.deviceIndex == deviceIndex, request.featureIndex == featureIndex,
+                  request.function == function, request.softwareID == softwareID else { return }
             complete(with: params)
-        case let .error(deviceIndex, featureIndex, function)?:
-            guard let request = inFlight, request.deviceIndex == deviceIndex,
-                  request.featureIndex == featureIndex, request.function == function else { return }
+        case let .error(deviceIndex, featureIndex, function, softwareID)?:
+            guard let request = inFlight, request.deviceIndex == deviceIndex, request.featureIndex == featureIndex,
+                  request.function == function, request.softwareID == softwareID else { return }
             complete(with: nil)
         case let .event(deviceIndex, featureIndex, _, params)?:
-            // Devices announce battery changes (feature 0x1004) themselves.
-            guard let device = devices[deviceIndex], featureIndex == device.featureIndex[.unifiedBattery],
-                  let battery = HIDPP.unifiedBattery(params) else { return }
+            // Devices announce battery changes themselves, in the same form as the reply
+            // to a battery read.
+            guard let device = devices[deviceIndex] else { return }
+            let battery = featureIndex == device.featureIndex[.unifiedBattery] ? HIDPP.unifiedBattery(params)
+                : featureIndex == device.featureIndex[.batteryStatus] ? HIDPP.batteryStatus(params) : nil
+            guard let battery else { return }
+            SharedContainer.logger.info("logitech: \(device.name, privacy: .public) announced \(battery.percent)%\(battery.isCharging ? " charging" : "")")
             onBattery?(device, battery)
         case let .receiverConnection(deviceIndex)?:
             // A device behind a receiver woke up or was paired: (re)identify it.

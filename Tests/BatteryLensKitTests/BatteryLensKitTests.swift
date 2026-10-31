@@ -366,11 +366,24 @@ final class ChargeHistoryTests: XCTestCase {
 
 final class HIDPPTests: XCTestCase {
     func testUnifiedBatteryResponse() {
-        let report: [UInt8] = [0x11, 0xFF, 0x06, 0x10 | HIDPP.softwareID, 85, 0x08, 0, 0] + Array(repeating: 0, count: 12)
-        guard case let .response(_, featureIndex, function, params)? = HIDPP.parse(report) else { return XCTFail() }
+        let report: [UInt8] = [0x11, 0xFF, 0x06, 0x1D, 85, 0x08, 0, 0] + Array(repeating: 0, count: 12)
+        guard case let .response(_, featureIndex, function, softwareID, params)? = HIDPP.parse(report) else { return XCTFail() }
         XCTAssertEqual(featureIndex, 0x06)
         XCTAssertEqual(function, 1)
+        XCTAssertEqual(softwareID, 0x0D)
         XCTAssertEqual(HIDPP.unifiedBattery(params), HIDPP.Battery(percent: 85, isCharging: false))
+    }
+
+    /// Each request's tag comes back with its reply, so a late reply can be told apart.
+    func testSoftwareIDRoundTrips() {
+        for id in HIDPP.softwareIDs {
+            var reply = HIDPP.request(deviceIndex: 0xFF, featureIndex: 0, function: 0, softwareID: id, params: [0x10, 0x04])
+            reply[4] = 0x06
+            guard case let .response(_, _, _, softwareID, _)? = HIDPP.parse(reply) else { return XCTFail() }
+            XCTAssertEqual(softwareID, id)
+        }
+        let error: [UInt8] = [0x11, 0xFF, 0xFF, 0x00, 0x0E, 0x05] + Array(repeating: 0, count: 14)
+        XCTAssertEqual(HIDPP.parse(error), .error(deviceIndex: 0xFF, featureIndex: 0, function: 0, softwareID: 0x0E))
     }
 
     func testCoarseLevelsAndCharging() {
