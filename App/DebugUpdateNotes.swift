@@ -69,6 +69,10 @@ enum DebugUpdateNotes {
             render(controller.debugWindow, to: out.appending(path: "general.png"))
             let window = controller.debugWindow
             note("settings resizable: \(window?.styleMask.contains(.resizable) == true) min \(window?.contentMinSize ?? .zero) max \(window?.contentMaxSize ?? .zero) general content \(contentSize())")
+            // A drag to 100 x 100 is held at the smallest the tab allows.
+            if let window, let held = window.delegate?.windowWillResize?(window, to: NSSize(width: 100, height: 100)) {
+                note("drag to 100x100 held at content \(window.contentRect(forFrameRect: NSRect(origin: .zero, size: held)).size)")
+            }
 
             // Asked for from the What's New… button: this version's notes, no "Don't show" box.
             SettingsWindowController.current?.showWhatsNew()

@@ -20,6 +20,11 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         set { UserDefaults.standard.set(newValue.map(NSStringFromSize), forKey: "settings.contentSize") }
     }
     static let minimumHeight: CGFloat = 280
+    /// The smallest and largest content size the shown tab allows. Set as the window's
+    /// contentMinSize/contentMaxSize too, but a window whose content is a hosting controller
+    /// drops those once it's shown, so dragging is held to them in windowWillResize.
+    private var minimumContent = NSSize(width: SettingsView.width, height: 280)
+    private var maximumContent = NSSize(width: CGFloat.greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
 
     init(model: AppModel) {
         self.model = model
@@ -83,12 +88,21 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             size = NSSize(width: max(chosen.width, SettingsView.width), height: max(chosen.height, Self.minimumHeight))
         }
         size = NSSize(width: min(size.width, room.width - 40), height: min(size.height, maxHeight))
-        window.contentMinSize = NSSize(width: SettingsView.width, height: min(Self.minimumHeight, size.height))
-        window.contentMaxSize = NSSize(width: room.width, height: maxHeight)
+        minimumContent = NSSize(width: SettingsView.width, height: min(Self.minimumHeight, size.height))
+        maximumContent = NSSize(width: room.width, height: maxHeight)
+        window.contentMinSize = minimumContent
+        window.contentMaxSize = maximumContent
         var frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: size))
         frame.origin = NSPoint(x: window.frame.minX, y: window.frame.maxY - frame.height)
         if let visible = screen?.visibleFrame, frame.minY < visible.minY { frame.origin.y = visible.minY }
         window.setFrame(frame, display: true, animate: animate && window.isVisible)
+    }
+
+    func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+        let content = sender.contentRect(forFrameRect: NSRect(origin: .zero, size: frameSize)).size
+        let clamped = NSSize(width: min(max(content.width, minimumContent.width), maximumContent.width),
+                             height: min(max(content.height, minimumContent.height), maximumContent.height))
+        return sender.frameRect(forContentRect: NSRect(origin: .zero, size: clamped)).size
     }
 
     func windowDidEndLiveResize(_ notification: Notification) {
