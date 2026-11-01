@@ -20,7 +20,7 @@ if [ "${NOTARIZE:-1}" != 0 ]; then
   ZIP=.build/BatteryLens-notary.zip
   rm -f "$ZIP"
   ditto -c -k --keepParent "$APP" "$ZIP"
-  xcrun notarytool submit "$ZIP" --keychain-profile DesktopBins --wait | grep -E "status:" | tail -1
+  xcrun notarytool submit "$ZIP" --keychain-profile "${NOTARY_PROFILE:-DesktopBins}" --wait | grep -E "status:" | tail -1
   xcrun stapler staple "$APP" >/dev/null
 fi
 [ "${INSTALL:-1}" = 0 ] && exit 0
