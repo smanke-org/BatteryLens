@@ -98,6 +98,7 @@ struct GeneralTab: View {
                 }
                 HStack {
                     Text("Version \(AppInfo.displayVersion)")
+                    Button("What's New…") { SettingsWindowController.current?.showWhatsNew() }
                     Button("Check Now") { UpdateController.checkForUpdates() }
                 }
                 if let error = updater.lastError {

@@ -22,6 +22,11 @@ enum AppInfo {
         (version == build ? "v\(version)" : "v\(version) (\(build))") + (stage.map { " \($0)" } ?? "")
     }
 
+    /// "1.0.6 beta", for people to read.
+    static var labeledVersion: String {
+        stage.map { "\(version) \($0)" } ?? version
+    }
+
     /// "beta" while BatteryLens is in beta (BatteryLensReleaseStage in Info.plist).
     static var stage: String? {
         Bundle.main.infoDictionary?["BatteryLensReleaseStage"] as? String

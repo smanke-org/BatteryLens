@@ -42,6 +42,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             DebugShots.run(folder: folder)
             return
         }
+        // The update prompt, What's New and Settings drawn to PNGs; also starts nothing else.
+        if let folder = ProcessInfo.processInfo.environment["BATTERYLENS_DEBUG_UPDATE_NOTES"] {
+            DebugUpdateNotes.run(folder: folder)
+            return
+        }
         if let how = ProcessInfo.processInfo.environment["BATTERYLENS_DEBUG_QUIT_TEST"] {
             DebugQuitTest.run(how, model: model)
             return
@@ -93,6 +98,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         model.onMenuBarChange = { [weak self] in self?.updateButton() }
         notifier.onOpen = { [weak self] device in self?.openSettings(device: device) }
+        notifier.onUpdated = { [weak self] in self?.openSettings() }
 
         // Estimates follow each device's "Report this device" switch and keep its name.
         if let estimates = hub.estimates {
@@ -122,7 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         // Nothing BatteryLens does is hurt by a restart, so updates need no busy check.
-        AutoUpdater.shared.start()
+        AutoUpdater.shared.start(newInstall: newInstall)
         if !AppPresence.showInMenuBar && !AppPresence.showInDock && onboarding == nil { openSettings() }
 
         // Links that launched the app.

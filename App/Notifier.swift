@@ -5,6 +5,8 @@ import UserNotifications
 /// The app's one notification delegate, so it also routes clicks on update notices.
 final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     var onOpen: ((String) -> Void)?
+    /// Clicking "BatteryLens updated": Settings, which shows what changed.
+    var onUpdated: (() -> Void)?
 
     override init() {
         super.init()
@@ -32,6 +34,8 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         if response.notification.request.content.categoryIdentifier == AutoUpdater.notificationCategory {
             // Clicking an update notice or its Install button opens the usual confirmation.
             DispatchQueue.main.async { UpdateController.checkForUpdates() }
+        } else if response.notification.request.identifier.hasPrefix("updated-") {
+            DispatchQueue.main.async { self.onUpdated?() }
         } else if let device = response.notification.request.content.userInfo["device"] as? String {
             DispatchQueue.main.async { self.onOpen?(device) }
         }

@@ -96,12 +96,16 @@ final class AutoUpdater: NSObject, UNUserNotificationCenterDelegate {
     /// delegate, hands clicks on them to `handle(_:)`.
     nonisolated static let notificationCategory = category
 
-    func start() {
+    /// - Parameter newInstall: a brand-new install, which has no release notes to show.
+    func start(newInstall: Bool = false) {
         let install = UNNotificationAction(identifier: Self.installAction, title: "Install", options: [.foreground])
         UNUserNotificationCenter.current().setNotificationCategories([
             UNNotificationCategory(identifier: Self.category, actions: [install], intentIdentifiers: []),
         ])
         if policy != .off { requestNotificationPermission() }
+        // Before the automatic-update record is read.
+        WhatsNew.shared.noteLaunch(newInstall: newInstall,
+                                   autoInstalledFrom: UserDefaults.standard.string(forKey: Self.installedFromKey))
         announceIfJustUpdated()
 
         checkIfDue()
@@ -273,7 +277,7 @@ final class AutoUpdater: NSObject, UNUserNotificationCenterDelegate {
         UserDefaults.standard.removeObject(forKey: Self.installedFromKey)
         guard from != AppInfo.version else { return }
         notify(id: "updated-\(AppInfo.version)", title: "BatteryLens updated to \(AppInfo.version)",
-               body: "It installed itself while your Mac wasn't in use.", installable: false)
+               body: "It installed itself while your Mac wasn't in use. Click to see what's new.", installable: false)
     }
 
     private func notifyAvailable(_ version: String) {

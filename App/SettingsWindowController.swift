@@ -10,14 +10,21 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private var tabObserver: AnyCancellable?
     private var fitting = false
-    /// The Devices tab's size when you've made the window bigger, kept across tabs and launches.
-    private var devicesSize: NSSize? {
-        get { UserDefaults.standard.string(forKey: "settingsDevicesSize").map(NSSizeFromString) }
-        set { UserDefaults.standard.set(newValue.map(NSStringFromSize), forKey: "settingsDevicesSize") }
+    /// The open Settings controller, for the What's New… button.
+    static weak var current: SettingsWindowController?
+
+    /// The content size you last dragged the window to (per Mac, not synced), kept for every
+    /// tab and next time; nil until you do, and each tab opens at its own height.
+    static var chosenSize: NSSize? {
+        get { UserDefaults.standard.string(forKey: "settings.contentSize").map(NSSizeFromString) }
+        set { UserDefaults.standard.set(newValue.map(NSStringFromSize), forKey: "settings.contentSize") }
     }
+    static let minimumHeight: CGFloat = 280
 
     init(model: AppModel) {
         self.model = model
+        super.init()
+        Self.current = self
     }
 
     func show(tab: SettingsTab? = nil) {
@@ -30,7 +37,18 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
+        // After an update whose notes weren't seen yet.
+        if let window { WhatsNew.shared.present(on: window) }
     }
+
+    /// This version's release notes, when asked for from Settings.
+    func showWhatsNew() {
+        if let window { WhatsNew.shared.present(on: window, asked: true) }
+    }
+
+    #if DEBUG
+    var debugWindow: NSWindow? { window }
+    #endif
 
     private func makeWindow() -> NSWindow {
         // Sized here, to each tab's natural height capped to the screen. Letting SwiftUI
@@ -49,9 +67,9 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         return window
     }
 
-    /// Resizes the window for the tab, keeping its top edge in place: the other tabs to
-    /// their natural height, the Devices tab to the size you last gave it (it fills the
-    /// window, so the list and the chart get the room). Never bigger than the screen.
+    /// Resizes the window for the tab, keeping its top edge in place: to its natural height
+    /// until you drag the window to a size, then every tab to that size (tabs fill the window
+    /// and scroll when they hold more). Never bigger than the screen.
     private func fit(_ tab: SettingsTab, animate: Bool) {
         guard let window else { return }
         fitting = true
@@ -61,13 +79,12 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         let room = screen?.visibleFrame.size ?? NSSize(width: 1400, height: 880)
         let maxHeight = room.height - 80
         var size = NSSize(width: SettingsView.width, height: min(natural, maxHeight))
-        if tab == .devices, let saved = devicesSize {
-            size = NSSize(width: max(size.width, saved.width), height: max(size.height, saved.height))
+        if let chosen = Self.chosenSize {
+            size = NSSize(width: max(chosen.width, SettingsView.width), height: max(chosen.height, Self.minimumHeight))
         }
         size = NSSize(width: min(size.width, room.width - 40), height: min(size.height, maxHeight))
-        window.contentMinSize = NSSize(width: SettingsView.width, height: min(240, size.height))
-        // Only the Devices tab has anything to gain from being taller than its contents.
-        window.contentMaxSize = NSSize(width: room.width, height: tab == .devices ? maxHeight : min(natural, maxHeight))
+        window.contentMinSize = NSSize(width: SettingsView.width, height: min(Self.minimumHeight, size.height))
+        window.contentMaxSize = NSSize(width: room.width, height: maxHeight)
         var frame = window.frameRect(forContentRect: NSRect(origin: .zero, size: size))
         frame.origin = NSPoint(x: window.frame.minX, y: window.frame.maxY - frame.height)
         if let visible = screen?.visibleFrame, frame.minY < visible.minY { frame.origin.y = visible.minY }
@@ -75,8 +92,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowDidEndLiveResize(_ notification: Notification) {
-        guard !fitting, tabState.tab == .devices, let window else { return }
-        devicesSize = window.contentRect(forFrameRect: window.frame).size
+        guard !fitting, let window else { return }
+        Self.chosenSize = window.contentRect(forFrameRect: window.frame).size
     }
 
     func windowWillClose(_ notification: Notification) {
