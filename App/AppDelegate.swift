@@ -30,6 +30,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return monitor
     }()
     private var statusItem: NSStatusItem!
+    /// Set once launching is done; `batterylens://` links that come earlier wait in pendingURLs.
+    private var launched = false
+    private var pendingURLs: [URL] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppSettings.register()
@@ -122,6 +125,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         AutoUpdater.shared.start()
         if !AppPresence.showInMenuBar && !AppPresence.showInDock && onboarding == nil { openSettings() }
 
+        // Links that launched the app.
+        launched = true
+        if !pendingURLs.isEmpty {
+            let links = pendingURLs
+            pendingURLs = []
+            application(NSApp, open: links)
+        }
+
         // Once the sources have settled: which ones run and which wait for a permission.
         DispatchQueue.main.asyncAfter(deadline: .now() + 20) { [weak self] in
             guard let self else { return }
@@ -201,15 +212,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         AppPresence.dockMenu(title: "Settings…", target: self, action: #selector(openSettingsFromMenu))
     }
 
-    /// `batterylens://` links, from ToolHUD, Shortcuts or a script.
+    /// `batterylens://` links, from ToolHUD, Shortcuts or a script. Links that launch the app
+    /// can arrive before it has finished launching; they wait until it has.
     func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls where url.scheme == "batterylens" {
+        let links = urls.filter { $0.scheme == "batterylens" }
+        guard launched else {
+            pendingURLs += links
+            return
+        }
+        for url in links {
             switch url.host {
+            case "menu": showMenu()
             case "refresh": hub.refresh()
+            case "devices": settingsWindow.show(tab: .devices)
             case "help": showHelp()
             case "check-updates": UpdateController.checkForUpdates()
             default: openSettings()
             }
+        }
+    }
+
+    /// The menu bar menu, from a link: under the icon when it's in the menu bar, otherwise
+    /// at the pointer (the icon is hidden, or ToolHUD has taken the menu). Waits briefly
+    /// for the first readings when the link has just launched the app.
+    private func showMenu(waits: Int = 8) {
+        if hub.devices.isEmpty && waits > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in self?.showMenu(waits: waits - 1) }
+            return
+        }
+        // On the next turn, so the link's Apple event is answered before the menu tracks.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if self.statusItem.isVisible, let button = self.statusItem.button, button.window != nil {
+                button.performClick(nil)
+                return
+            }
+            let menu = NSMenu()
+            menu.autoenablesItems = false
+            self.menuNeedsUpdate(menu)
+            menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
         }
     }
 

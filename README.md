@@ -44,8 +44,10 @@ Requires macOS 26 or later. BatteryLens is free, and is currently in beta.
   per device), and optionally when one is fully charged.
 - **Per-device settings**: rename, hide, set the low-battery level, or forget a device.
 - The usual: System, Light or Dark appearance; show it in the menu bar, the Dock, both or
-  neither; open at login; sync settings between your Macs; in-app Help (⌘?);
-  `batterylens://` links for Shortcuts, scripts and ToolHUD.
+  neither; open at login; sync settings between your Macs; in-app Help (⌘?).
+- **URLs** for ToolHUD, Shortcuts or scripts: `batterylens://menu` shows the battery menu,
+  `refresh` reads every source again, `devices` opens Settings › Devices, and `settings`,
+  `help` and `check-updates` do what they say. ToolHUD offers the first four as buttons.
 
 ## Screenshots
 

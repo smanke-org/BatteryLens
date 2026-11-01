@@ -43,5 +43,56 @@
 	<string>BatteryLens reads the battery levels your Bluetooth devices report.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Steve Manke. All rights reserved.</string>
+	<key>ToolHUDActions</key>
+	<array>
+		<dict>
+			<key>activates</key>
+			<false/>
+			<key>id</key>
+			<string>menu</string>
+			<key>shortTitle</key>
+			<string>Batteries</string>
+			<key>symbol</key>
+			<string>battery.75percent</string>
+			<key>title</key>
+			<string>Show battery levels</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<false/>
+			<key>id</key>
+			<string>refresh</string>
+			<key>shortTitle</key>
+			<string>Refresh</string>
+			<key>symbol</key>
+			<string>arrow.clockwise</string>
+			<key>title</key>
+			<string>Refresh Now</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<true/>
+			<key>id</key>
+			<string>devices</string>
+			<key>shortTitle</key>
+			<string>Devices</string>
+			<key>symbol</key>
+			<string>chart.xyaxis.line</string>
+			<key>title</key>
+			<string>Show devices and history</string>
+		</dict>
+		<dict>
+			<key>activates</key>
+			<true/>
+			<key>id</key>
+			<string>settings</string>
+			<key>shortTitle</key>
+			<string>Settings</string>
+			<key>symbol</key>
+			<string>gearshape</string>
+			<key>title</key>
+			<string>Settings…</string>
+		</dict>
+	</array>
 </dict>
 </plist>

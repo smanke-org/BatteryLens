@@ -159,11 +159,14 @@ enum Help {
         HelpTopic(id: "automation", title: "Automation", symbol: "link", blocks: [
             .text("Shortcuts, scripts and ToolHUD can control BatteryLens with batterylens:// links:"),
             .keys([
-                ("batterylens://settings", "Opens Settings"),
+                ("batterylens://menu", "Shows the battery menu: under the menu bar icon, or at the pointer when the icon is hidden"),
                 ("batterylens://refresh", "Reads every source again"),
+                ("batterylens://devices", "Opens Settings › Devices, with each device's history and time left"),
+                ("batterylens://settings", "Opens Settings"),
                 ("batterylens://help", "Opens this Help"),
                 ("batterylens://check-updates", "Looks for a new version now"),
             ]),
+            .text("ToolHUD offers the first four as buttons: Batteries, Refresh, Devices and Settings."),
             .tip("In Terminal: open batterylens://refresh"),
         ]),
 
