@@ -47,6 +47,14 @@ Requires macOS 26 or later. BatteryLens is free, and is currently in beta.
   neither; open at login; sync settings between your Macs; in-app Help (⌘?);
   `batterylens://` links for Shortcuts, scripts and ToolHUD.
 
+## Screenshots
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/batterylens-history.jpg" alt="BatteryLens Settings with a list of devices and the Mouse selected, showing its name, Report this device, low battery alert level and a week of battery history with about 4 days left"><br><sub><b>History and time left.</b> Each device's settings, a week of its battery, and how long it should last.</sub></td>
+</tr>
+</table>
+
 ## Permissions
 
 All optional. Without any, BatteryLens still shows your Mac, AirPods and most Apple and
