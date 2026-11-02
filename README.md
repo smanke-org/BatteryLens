@@ -72,7 +72,9 @@ Bluetooth accessories.
 
 BatteryLens updates itself from this repository's releases. In **Settings › General**,
 choose to install updates automatically (when your Mac is idle and nothing is presenting),
-to be asked first, or not to check, and how often to look.
+to be asked first, or not to check, and how often to look. The update window shows the notes
+for the latest releases, with the ones you don't have yet marked New. After an update that
+installed itself, Settings shows what changed the next time it opens.
 
 ## Building
 
