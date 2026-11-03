@@ -37,5 +37,8 @@ rsync -a --delete "$APP/" /Applications/BatteryLens.app/
 "$LSREGISTER" -u "$PWD/$APP" 2>/dev/null || true
 "$LSREGISTER" -f /Applications/BatteryLens.app
 codesign --verify --deep --strict /Applications/BatteryLens.app
+# The command line tool: the app's own binary under a short name (see App/Agent/AgentCLI.swift).
+mkdir -p "$HOME/.local/bin"
+ln -sf /Applications/BatteryLens.app/Contents/MacOS/BatteryLens "$HOME/.local/bin/batterylens"
 open /Applications/BatteryLens.app
 echo "Installed BatteryLens $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Applications/BatteryLens.app/Contents/Info.plist) ($(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' /Applications/BatteryLens.app/Contents/Info.plist))"

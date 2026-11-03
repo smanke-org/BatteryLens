@@ -49,6 +49,31 @@ Requires macOS 26 or later. BatteryLens is free, and is currently in beta.
   `refresh` reads every source again, `devices` opens Settings › Devices, and `settings`,
   `help` and `check-updates` do what they say. ToolHUD offers the first four as buttons.
 
+### Command line and AI agents
+
+BatteryLens is also a command line tool, so scripts and AI agents (Claude Code, Codex) can list your
+devices and their levels, read a battery's history, rename, hide or forget devices, and change alert
+settings. Commands run in the open app, and the menu, Settings and the widget follow at once. Link it
+once to type `batterylens`:
+
+```bash
+ln -s /Applications/BatteryLens.app/Contents/MacOS/BatteryLens ~/.local/bin/batterylens
+```
+
+```bash
+batterylens help
+batterylens devices list --connected --json
+batterylens devices update Mouse --low-threshold 15
+```
+
+Every command takes `--json`. Forgetting a device only shows what it would forget until you add
+`--yes`. For MCP apps such as Claude Desktop, the same commands are served by
+`/Applications/BatteryLens.app/Contents/MacOS/BatteryLens mcp`:
+
+```bash
+claude mcp add --scope user batterylens -- /Applications/BatteryLens.app/Contents/MacOS/BatteryLens mcp
+```
+
 ## Screenshots
 
 <table>

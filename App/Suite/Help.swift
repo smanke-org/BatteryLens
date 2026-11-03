@@ -172,6 +172,15 @@ enum Help {
             ]),
             .text("ToolHUD offers the first four as buttons: Batteries, Refresh, Devices and Settings."),
             .tip("In Terminal: open batterylens://refresh"),
+            .heading("Command line and AI agents"),
+            .text("BatteryLens is also a command line tool, so scripts and AI agents such as Claude Code or Codex can list your devices and their levels, read a battery's history, rename, hide or forget devices, and change alert settings. Commands run in the open app, and the menu, Settings and the widget follow at once. Forgetting a device needs --yes."),
+            .keys([
+                ("batterylens help", "List every command and its options"),
+                ("batterylens devices list", "Every device, its level, charging and when it was last read"),
+                ("batterylens devices show <device>", "One device's batteries, settings and time left"),
+                ("batterylens mcp", "Offer the same commands to MCP apps, such as Claude Desktop"),
+            ]),
+            .text("To type batterylens in Terminal, link it once: ln -s /Applications/BatteryLens.app/Contents/MacOS/BatteryLens ~/.local/bin/batterylens (with ~/.local/bin on your PATH). MCP apps take the full path to that program, followed by mcp."),
         ]),
 
         HelpTopic(id: "troubleshooting", title: "Troubleshooting", symbol: "wrench.and.screwdriver", blocks: [

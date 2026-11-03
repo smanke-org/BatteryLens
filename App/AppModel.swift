@@ -8,7 +8,15 @@ import UserNotifications
 
 /// App-wide choices, in UserDefaults.
 enum AppSettings {
-    static let defaults = UserDefaults.standard
+    /// UserDefaults.standard, except in an agent CLI test copy (a Debug build run with
+    /// APP_STORE), which shares the installed app's bundle ID and so gets a domain of its own.
+    static let defaults: UserDefaults = {
+        #if DEBUG
+        if AgentSocket.isTestRun, let suite = UserDefaults(suiteName: testSuite) { return suite }
+        #endif
+        return .standard
+    }()
+    static let testSuite = "com.smanke.BatteryLens.agenttest"
 
     enum Key {
         static let lowAlerts = "lowAlerts"
@@ -167,6 +175,10 @@ final class AppModel: ObservableObject {
     /// A synced setting changed here: tell settings sync, unless it's another Mac's
     /// value being applied.
     private func syncChanged() {
+        #if DEBUG
+        // An agent CLI test copy keeps its settings to itself (sync's own state is in the real prefs).
+        if AgentSocket.isTestRun { return }
+        #endif
         if !reloadingSettings { SettingsSync.shared.localDidChange() }
     }
 

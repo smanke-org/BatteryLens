@@ -18,11 +18,24 @@ enum QuitConfirmation {
 /// for checking the sources and the widget.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
-    private let hub = BatteryHub()
+    /// The running app, for the agent commands (Agent/AgentCommands.swift).
+    private(set) static weak var shared: AppDelegate?
+    let hub: BatteryHub = {
+        #if DEBUG
+        // An agent CLI test copy (APP_STORE): its devices and history from that folder, and no
+        // sources, so it never opens HID devices, starts Bluetooth or asks for a permission.
+        if AgentSocket.isTestRun, let folder = ProcessInfo.processInfo.environment["APP_STORE"] {
+            let url = URL(fileURLWithPath: folder, isDirectory: true)
+            return BatteryHub(sources: [], store: DeviceStore(fileURL: url.appendingPathComponent("devices.json")),
+                              history: ChargeHistory(fileURL: url.appendingPathComponent("history.jsonl")))
+        }
+        #endif
+        return BatteryHub()
+    }()
     private let publisher = SnapshotPublisher()
     private let notifier = Notifier()
-    private lazy var model = AppModel(hub: hub)
-    private lazy var settingsWindow = SettingsWindowController(model: model)
+    private(set) lazy var model = AppModel(hub: hub)
+    private(set) lazy var settingsWindow = SettingsWindowController(model: model)
     private var onboarding: OnboardingWindowController?
     private lazy var alerts: AlertMonitor = {
         let monitor = AlertMonitor(fired: Set(AppSettings.defaults.stringArray(forKey: AppSettings.Key.alertsFired) ?? []))
@@ -36,7 +49,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppSettings.register()
+        Self.shared = self
         #if DEBUG
+        // A test run of the agent CLI (APP_STORE): its own devices, history and settings, and
+        // the agent socket. Nothing else starts: no sources, widget, menu bar item, ToolHUD
+        // menu, sync, alerts or updater.
+        if AgentSocket.isTestRun {
+            hub.onChange = { [weak self] _ in self?.model.devicesChanged() }
+            hub.recompute()
+            AgentSocket.listen { AgentRouter.handle($0) }
+            return
+        }
         // Pictures for the website from made-up devices; starts nothing and saves nothing.
         if let folder = ProcessInfo.processInfo.environment["BATTERYLENS_DEBUG_SHOTS"] {
             DebugShots.run(folder: folder)
@@ -116,6 +139,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         hub.start(holding: held)
 
         listenForWidgetRequests()
+        // `batterylens` and its MCP server talk to the app through this.
+        AgentSocket.listen { AgentRouter.handle($0) }
 
         if !AppSettings.defaults.bool(forKey: AppSettings.Key.onboardingDone) {
             let onboarding = OnboardingWindowController(model: model)
@@ -221,6 +246,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// `batterylens://` links, from ToolHUD, Shortcuts or a script. Links that launch the app
     /// can arrive before it has finished launching; they wait until it has.
     func application(_ application: NSApplication, open urls: [URL]) {
+        #if DEBUG
+        // Links are for the installed app; an agent CLI test copy leaves them alone.
+        if AgentSocket.isTestRun { return }
+        #endif
         let links = urls.filter { $0.scheme == "batterylens" }
         guard launched else {
             pendingURLs += links
@@ -300,7 +329,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return item
     }
 
-    @objc private func showHelp() { HelpWindow.shared.show() }
+    @objc func showHelp() { HelpWindow.shared.show() }
     @objc private func checkForUpdates() { UpdateController.checkForUpdates() }
     @objc private func installUpdateNow() { AutoUpdater.shared.installNow() }
 

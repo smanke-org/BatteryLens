@@ -51,6 +51,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         if let window { WhatsNew.shared.present(on: window, asked: true) }
     }
 
+    var isVisible: Bool { window?.isVisible == true }
+
     #if DEBUG
     var debugWindow: NSWindow? { window }
     #endif
