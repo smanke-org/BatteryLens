@@ -365,10 +365,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         let settings = NSMenuItem(title: "Settings…", action: #selector(openSettingsFromMenu), keyEquivalent: ",")
         settings.target = self
-        menu.addItem(settings)
+        menu.addItem(settings.showIcon("gearshape"))
         let refresh = NSMenuItem(title: "Refresh Now", action: #selector(refreshNow), keyEquivalent: "r")
         refresh.target = self
-        menu.addItem(refresh)
+        menu.addItem(refresh.showIcon("arrow.clockwise"))
         let diagnostics = NSMenuItem(title: "Diagnostics", action: nil, keyEquivalent: "")
         let diagnosticsMenu = NSMenu()
         diagnosticsMenu.autoenablesItems = false
@@ -381,11 +381,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         help.image = NSImage(systemSymbolName: "questionmark.circle", accessibilityDescription: nil)
         menu.addItem(help)
         if let staged = AutoUpdater.shared.staged {
-            menu.addItem(action("Update to \(staged.version) Now (Otherwise Installs When Idle)", #selector(installUpdateNow)))
+            menu.addItem(action("Update to \(staged.version) Now (Otherwise Installs When Idle)", #selector(installUpdateNow)).showIcon("arrow.down.circle"))
         } else if let pending = UpdateAvailability.shared.pending {
-            menu.addItem(action("Update to \(pending)…", #selector(checkForUpdates)))
+            menu.addItem(action("Update to \(pending)…", #selector(checkForUpdates)).showIcon("arrow.down.circle"))
         } else {
-            menu.addItem(action("Check for Updates…", #selector(checkForUpdates)))
+            menu.addItem(action("Check for Updates…", #selector(checkForUpdates)).showIcon("arrow.down.circle"))
         }
         menu.addItem(action("About \(AppInfo.name)", #selector(showAbout)))
         menu.addItem(action("Our other apps…", #selector(showOtherApps)))
